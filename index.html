@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #ddd;
+        }
+        body {
+            padding: 10px;
+        }
+        #canvas {
+            background-color: #fff;
+            border: thin inset #aaaaaa;
+            margin: 0 auto;
+            width: 600px;
+        }
+    </style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+
+
+<script>
+    'use strict';
+    var canvas = document.querySelector('#canvas'),
+            ctx = canvas.getContext('2d');
+            canvas.width = 600;
+            canvas.height = 600;
+    if(!window.localStorage.getItem('highest')){
+        window.localStorage.setItem('highest','0');
+    }
+    var highest = window.localStorage.getItem('highest');
+//    window.addEventListener('resize', function () {
+//        canvas.width = window.innerWidth - 20;
+//        canvas.height = window.innerHeight - 20;
+//    });
+    var npc0 = new Image(),npc1 = new Image(),npc2 = new Image(),npc3 = new Image(),npc4 = new Image(),tank = new Image(),tank2 = new Image();
+    npc0.src = 'imgs/0.png';
+    npc1.src = 'imgs/1.png';
+    npc2.src = 'imgs/2.png';
+    npc3.src = 'imgs/3.png';
+    npc4.src = 'imgs/4.png';
+    tank.src = 'imgs/tank.png';
+    tank2.src = 'imgs/tank2.png';
+
+    var npc = [npc0,npc1,npc2,npc3,npc4];
+    tank2.addEventListener('load',function () {
+        var w = npc0.width / 4,
+              h = npc0.height / 4,
+              tw = tank.width/4,
+              th = tank.height/4,
+              PI = Math.PI;
+        var i = 0,
+            dx = 30,
+            dy = 30,
+            ndx = 0,
+            ndy = 0,
+            nNpc = 0,
+            speedX = 0,
+            speedY = 5,
+            dir = 0,
+            count = 0,
+            duration = 80,
+            l = [],
+            nNpcs = [],
+            over = false,
+            last = null,
+            animate = null,
+
+            tankSpeed = 5,
+            tx = 0,
+            ty = 250,
+            tdir = 2,
+            bulletCount = 0,
+            bulletSpeed = 1,
+            bullet = [],
+            shoot = false,
+            tank2Speed = 5,
+            tx2 = 400,
+            ty2 = 0,
+            tdir2 = 0,
+            crash =false,
+
+            play = true,
+            down = true;
+        function move() {
+            for(var b of bullet){
+                if(b.x>canvas.width){
+                    bullet.shift();
+                }
+                console.log(Math.abs(b.x - dx) <= 20,Math.abs(ty+30 - dy) <= 20);
+                if(Math.abs(b.x - (dx+20)) <= 3 && Math.abs(ty+30 - (dy+h/2+10)) <= h/2){
+                    shoot = true;
+                }
+                ctx.beginPath();
+                ctx.arc(b.x,ty+30,3,0,2*PI,false);
+                ctx.strokeStyle = 'black';
+                ctx.fillStyle = 'red';
+                ctx.stroke();
+                ctx.fill();
+                ctx.closePath();
+                b.x+=bulletSpeed;
+            }
+
+            var now = Date.now();
+            if(now - last >= duration) {
+                dx += speedX;
+                dy += speedY;
+                tx += tankSpeed;
+                ty2 += tank2Speed;
+
+                if(Math.abs(dx-ndx)<=10 && Math.abs(dy-ndy)<=10){
+                    count++;
+                    duration-=2;
+                    if(duration<=30){
+                        duration = 30;
+                    }
+                    tankSpeed++;
+                    newPerson();
+                }
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+                ctx.drawImage(npc[nNpc],i*w,0,w,h,ndx,ndy,w,h);
+                while (l.length > count){
+                    l.pop();
+                }
+                if(down){
+                    for(var j=0;j<l.length;j++){
+                        ctx.drawImage(npc[nNpcs[j]],i*w,l[j].dir*h,w,h,l[j].dx,l[j].dy,w,h);
+                        if(j>5 && Math.abs(dx-l[j].dx)<=10 && Math.abs(dy-l[j].dy)<=10){
+                            over = true;
+                        }
+                        if(Math.abs(l[j].dx+w/2-(tx2+tw/2))<=(w/2+tw/2 - 10) && Math.abs(l[j].dy+h/2-(ty2+th/2))<=(h/2+th/2 - 30)){
+                            crash = true;
+                        }
+                    }
+                    ctx.drawImage(npc2,i*w,dir*h,w,h,dx,dy,w,h);
+                } else {
+                    ctx.drawImage(npc2,i*w,dir*h,w,h,dx,dy,w,h);
+
+                    for(var j=0;j<l.length;j++){
+                        ctx.drawImage(npc[nNpcs[j]],i*w,l[j].dir*h,w,h,l[j].dx,l[j].dy,w,h);
+                        if(j>5 && Math.abs(dx-l[j].dx)<=10 && Math.abs(dy-l[j].dy)<=10){
+                            over = true;
+                        }
+                        if(Math.abs(l[j].dx+w/2-(tx2+tw/2))<=(w/2+tw/2 - 10) && Math.abs(l[j].dy+h/2-(ty2+th/2))<=(h/2+th/2 - 30)){
+                            crash = true;
+                        }
+                    }
+
+                }
+
+                l.unshift({dx:dx,dy:dy,dir:dir});
+
+                if(tx+tw>=canvas.width){
+                    tdir = 1;
+                    tankSpeed = -tankSpeed;
+                }
+                if(tx<=0){
+                    tdir = 2;
+                    tankSpeed = -tankSpeed;
+                }
+                if(ty2+th>=canvas.height){
+                    tdir2 = 3;
+                    tank2Speed = -tank2Speed;
+                }
+                if(ty2<=0){
+                    tdir2 = 0;
+                    tank2Speed = -tank2Speed;
+                }
+                ctx.drawImage(tank,0,2*th,tw,th,0,ty,tw,th);
+                if(bulletCount++%50===0){
+                    bullet.push({
+                        x: tw+10
+                    });
+                }
+                ctx.drawImage(tank2,i*tw,tdir2*th,tw,th,tx2,ty2,tw,th);
+                if(Math.abs(dx+w/2-(tx2+tw/2))<=(w/2+tw/2 - 10) && Math.abs(dy+h/2-(ty2+th/2))<=(h/2+th/2 - 30)){
+                    crash = true;
+                }
+                i++;
+                i%=4;
+                last = now;
+
+                ctx.font = "30px Arial";
+                ctx.textAlign = 'left';
+                ctx.fillStyle = 'red';
+                ctx.fillText(`Score: ${count*100}  Highest: ${Math.max(highest,count*100)}`,50,50);
+
+                if(dx<=0||dy<=0||dx+w>=canvas.width||dy+h>=canvas.height||over === true || crash === true || shoot === true){
+                    cancelAnimationFrame(animate);
+                    ctx.font = "50px Arial red";
+                    ctx.textAlign = 'center';
+                    ctx.fillText("Game Over!",canvas.width/2,200);
+                    cancelAnimationFrame(animate);
+                    window.localStorage.setItem('highest',Math.max(highest,count*100));
+                    return;
+                }
+            }
+            animate = requestAnimationFrame(move);
+        }
+        function newPerson() {
+            ndx = Math.random()*(canvas.width-w);
+            ndy = Math.random()*(canvas.height-h);
+            nNpc = Math.round(Math.random()*4);
+            nNpcs.push(nNpc);
+        }
+        newPerson();
+        last = Date.now();
+        animate = requestAnimationFrame(move);
+        document.addEventListener('keydown',function (e) {
+            e.preventDefault();
+            switch (e.which) {
+                case 37:
+                    if(dir===2){
+                        break;
+                    }
+                    speedY = 0;
+                    speedX = -5;
+                    dir = 1;
+                    down = false;
+                    break;
+                case 38:
+                    if(dir===0){
+                        break;
+                    }
+                    speedY = -5;
+                    speedX = 0;
+                    dir = 3;
+                    down = false;
+                    break;
+                case 39:
+                    if(dir===1){
+                        break;
+                    }
+                    speedY = 0;
+                    speedX = 5;
+                    dir = 2;
+                    down = false;
+                    break;
+                case 40:
+                    if(dir===3){
+                        break;
+                    }
+                    speedY = 5;
+                    speedX = 0;
+                    dir = 0;
+                    down = true;
+                    break;
+                case 32:
+                    if(play){
+                        cancelAnimationFrame(animate);
+                    }else {
+                        animate = requestAnimationFrame(move);
+                    }
+            }
+        })
+    });
+
+</script>
+</body>
+</html>
